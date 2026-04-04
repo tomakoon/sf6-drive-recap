@@ -128,7 +128,15 @@ python driverecap.py --dry-run --no-headless
 
 Drive Recap uses [Playwright](https://playwright.dev/python/) to authenticate with Buckler's Boot Camp via CAPCOM ID, then navigates to your ranked battle log page and parses the `__NEXT_DATA__` payload (Next.js server-side rendered data). This approach is based on [cfn-tracker](https://github.com/williamsjokvist/cfn-tracker)'s proven scraping strategy.
 
-Session detection works by storing the timestamp of your last posted match. Each run only includes matches newer than that timestamp, preventing duplicate posts.
+### Session detection
+
+Drive Recap identifies which matches belong to your current session using two mechanisms:
+
+1. **Timestamp tracking** — After each successful post, the timestamp of your most recent match is saved. The next run only fetches matches newer than that timestamp, preventing duplicate posts.
+
+2. **Gap detection** — If there's a 3+ hour gap between consecutive matches, Drive Recap treats it as a session boundary and only includes matches from the most recent session. This means even if you use `--reset-state`, it won't mix tonight's matches with last week's.
+
+On first run (or after `--reset-state`), the scraper looks back up to **6 hours** by default to avoid fetching your entire match history. Within that window, gap detection isolates the actual session.
 
 ## Project structure
 
