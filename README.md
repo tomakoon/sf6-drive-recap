@@ -91,21 +91,21 @@ Note: X API uses pay-per-use pricing ($0.01/tweet as of 2026).
 
 ```bash
 # Preview without posting
-python sf6_broadcast.py --dry-run
+python driverecap.py --dry-run
 
 # Post to all configured platforms
-python sf6_broadcast.py
+python driverecap.py
 
 # Post to a single platform
-python sf6_broadcast.py --mastodon-only
-python sf6_broadcast.py --bluesky-only
-python sf6_broadcast.py --twitter-only
+python driverecap.py --mastodon-only
+python driverecap.py --bluesky-only
+python driverecap.py --twitter-only
 
 # Reset session state (include all recent matches)
-python sf6_broadcast.py --reset-state
+python driverecap.py --reset-state
 
 # Debug: run browser in visible mode
-python sf6_broadcast.py --dry-run --no-headless
+python driverecap.py --dry-run --no-headless
 ```
 
 ### macOS Shortcut
@@ -114,7 +114,7 @@ python sf6_broadcast.py --dry-run --no-headless
 2. Create a new shortcut named "Drive Recap"
 3. Add a "Run Shell Script" action:
    - Shell: `/bin/zsh`
-   - Script: `source /path/to/sf6-drive-recap/venv/bin/activate && python /path/to/sf6-drive-recap/sf6_broadcast.py`
+   - Script: `source /path/to/sf6-drive-recap/venv/bin/activate && python /path/to/sf6-drive-recap/driverecap.py`
 4. Optionally add "Show Notification" with the Shell Script Result
 5. Trigger via Shortcuts app, Siri ("Hey Siri, Drive Recap"), menu bar, or keyboard shortcut
 
@@ -134,7 +134,7 @@ Session detection works by storing the timestamp of your last posted match. Each
 
 ```
 sf6-drive-recap/
-├── sf6_broadcast.py        # CLI entry point
+├── driverecap.py        # CLI entry point
 ├── buckler/
 │   ├── auth.py             # CAPCOM ID authentication via Playwright
 │   └── scraper.py          # Fetch + parse battle log from Buckler
