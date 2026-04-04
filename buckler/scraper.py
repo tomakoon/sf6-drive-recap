@@ -50,55 +50,113 @@ class ProfileData:
     matches: list[Match] = field(default_factory=list)
 
 
-def fetch_battle_log(context: BrowserContext, cfn_name: str, short_id: str = "") -> ProfileData:
+def fetch_battle_log(
+    context: BrowserContext,
+    cfn_name: str,
+    short_id: str = "",
+    last_timestamp: str | None = None,
+) -> ProfileData:
     """
     Navigate to the ranked battlelog page and parse __NEXT_DATA__.
-    This is the exact approach cfn-tracker uses.
-    Uses the numeric short_id in the URL (Buckler's route param is [sid]).
+    Fetches multiple pages if needed to capture all matches since last_timestamp.
     """
     _DEBUG_DIR.mkdir(parents=True, exist_ok=True)
     sid = short_id or cfn_name
-    url = BUCKLER_BATTLELOG_URL.format(sid=sid)
+    base_url = BUCKLER_BATTLELOG_URL.format(sid=sid)
 
     page = context.new_page()
-    print(f"  [scraper] Navigating to: {url}")
-    page.goto(url, wait_until="networkidle", timeout=30000)
-    page.wait_for_load_state("networkidle")
-    print(f"  [scraper] On page: {page.url}")
-    page.screenshot(path=str(_DEBUG_DIR / "05_battlelog.png"), full_page=True)
+    profile = None
+    all_matches: list[Match] = []
+    page_num = 1
 
-    # Extract __NEXT_DATA__ — the SSR payload containing all battle log data
+    while True:
+        url = base_url if page_num == 1 else f"{base_url}?page={page_num}"
+        print(f"  [scraper] Fetching page {page_num}: {url}")
+        page.goto(url, wait_until="networkidle", timeout=30000)
+        page.wait_for_load_state("networkidle")
+
+        if page_num == 1:
+            page.screenshot(path=str(_DEBUG_DIR / "05_battlelog.png"), full_page=True)
+
+        page_props = _extract_page_props(page, page_num)
+        if page_props is None:
+            break
+
+        # Parse profile info from first page only
+        if profile is None:
+            profile = _parse_profile(page_props)
+
+        # Parse matches from this page
+        page_matches = _parse_matches(page_props, profile.cfn_name)
+        current_page = page_props.get("current_page", 1)
+        total_pages = page_props.get("total_page", 1)
+        print(f"  [scraper] Page {current_page}/{total_pages}: {len(page_matches)} matches")
+
+        if not page_matches:
+            break
+
+        all_matches.extend(page_matches)
+
+        # Check if we've gone far enough back in time
+        # Matches are newest-first from Buckler, so the last match on this page is the oldest
+        oldest_on_page = page_matches[-1].uploaded_at
+        if last_timestamp and oldest_on_page <= last_timestamp:
+            print(f"  [scraper] Reached matches from previous session, stopping pagination")
+            break
+
+        # Check if there are more pages
+        if current_page >= total_pages:
+            break
+
+        page_num += 1
+
+    page.close()
+
+    if profile is None:
+        raise RuntimeError("Could not parse profile data from Buckler.")
+
+    profile.matches = all_matches
+    print(f"  [scraper] Total matches fetched: {len(all_matches)} across {page_num} page(s)")
+    return profile
+
+
+def _extract_page_props(page, page_num: int) -> dict | None:
+    """Extract pageProps from __NEXT_DATA__ on the current page."""
     next_data_el = page.locator("script#__NEXT_DATA__")
     if next_data_el.count() == 0:
-        page.close()
-        raise RuntimeError(
-            "Could not find #__NEXT_DATA__ on battlelog page. "
-            "Check .debug/05_battlelog.png — you may be logged out or CloudFront-blocked."
-        )
+        if page_num == 1:
+            raise RuntimeError(
+                "Could not find #__NEXT_DATA__ on battlelog page. "
+                "Check .debug/05_battlelog.png — you may be logged out or CloudFront-blocked."
+            )
+        return None
 
     raw = next_data_el.first.inner_text()
     next_data = json.loads(raw)
-    (_DEBUG_DIR / "next_data.json").write_text(json.dumps(next_data, indent=2, default=str)[:500000])
+
+    if page_num == 1:
+        (_DEBUG_DIR / "next_data.json").write_text(
+            json.dumps(next_data, indent=2, default=str)[:500000]
+        )
 
     page_props = next_data.get("props", {}).get("pageProps", {})
     status_code = page_props.get("common", {}).get("statusCode", 0)
     if status_code != 200:
-        page.close()
-        raise RuntimeError(f"Buckler returned status {status_code}. Check .debug/next_data.json")
+        if page_num == 1:
+            raise RuntimeError(f"Buckler returned status {status_code}. Check .debug/next_data.json")
+        return None
 
-    print(f"  [scraper] Got battle log data (status: {status_code})")
-    page.close()
-    return _parse_battle_log(page_props)
+    return page_props
 
 
-def _parse_battle_log(page_props: dict) -> ProfileData:
-    """Parse the pageProps from __NEXT_DATA__ using cfn-tracker's exact field names."""
+def _parse_profile(page_props: dict) -> ProfileData:
+    """Parse player profile info from pageProps."""
     banner = page_props.get("fighter_banner_info", {})
     personal = banner.get("personal_info", {})
     fav_league = banner.get("favorite_character_league_info", {})
     rank_info = fav_league.get("league_rank_info", {})
 
-    profile = ProfileData(
+    return ProfileData(
         cfn_name=personal.get("fighter_id", ""),
         character_name=banner.get("favorite_character_name", ""),
         league_point=fav_league.get("league_point", 0),
@@ -106,12 +164,15 @@ def _parse_battle_log(page_props: dict) -> ProfileData:
         rank_name=rank_info.get("league_rank_name", ""),
     )
 
-    for replay in page_props.get("replay_list", []):
-        match = _parse_replay(replay, profile.cfn_name)
-        if match:
-            profile.matches.append(match)
 
-    return profile
+def _parse_matches(page_props: dict, cfn_name: str) -> list[Match]:
+    """Parse replay_list from a single page of pageProps."""
+    matches = []
+    for replay in page_props.get("replay_list", []):
+        match = _parse_replay(replay, cfn_name)
+        if match:
+            matches.append(match)
+    return matches
 
 
 def _parse_replay(replay: dict, my_cfn: str) -> Match | None:

@@ -67,8 +67,9 @@ def main():
         sys.exit(1)
 
     try:
+        last_ts = load_last_match_timestamp()
         print(f"Fetching battle log for {cfn_name} (SID: {short_id})...")
-        profile = fetch_battle_log(context, cfn_name, short_id)
+        profile = fetch_battle_log(context, cfn_name, short_id, last_timestamp=last_ts)
 
         if not profile.matches:
             print("No matches found on Buckler. You may not have recent ranked matches.")
@@ -77,7 +78,6 @@ def main():
         print(f"Found {len(profile.matches)} recent matches for {profile.cfn_name}")
 
         # Step 2: Reconstruct session
-        last_ts = load_last_match_timestamp()
         stats, session_matches = reconstruct_session(profile, last_ts)
 
         if not session_matches:
