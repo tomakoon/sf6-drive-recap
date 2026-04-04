@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Local state / secrets
+.env
+.session_state.json
+.browser_state/
+.debug/
