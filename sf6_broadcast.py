@@ -114,24 +114,33 @@ def main():
         post_bluesky = args.bluesky_only or not any_only
         post_twitter = args.twitter_only or not any_only
 
-        if post_mastodon and config.MASTODON_ACCESS_TOKEN:
-            print("\nPosting to Mastodon...")
-            from social.mastodon import post_status as mastodon_post
-            result = mastodon_post(mastodon_text)
-            print(f"Mastodon: {result.get('url', 'posted')}")
+        if post_mastodon:
+            if config.MASTODON_ACCESS_TOKEN:
+                print("\nPosting to Mastodon...")
+                from social.mastodon import post_status as mastodon_post
+                result = mastodon_post(mastodon_text)
+                print(f"Mastodon: {result.get('url', 'posted')}")
+            else:
+                print("\nMastodon: skipped (no credentials in .env)")
 
-        if post_bluesky and config.BLUESKY_HANDLE:
-            print("\nPosting to Bluesky...")
-            from social.bluesky import post_status as bluesky_post
-            result = bluesky_post(bluesky_text)
-            print(f"Bluesky: {result.get('uri', 'posted')}")
+        if post_bluesky:
+            if config.BLUESKY_HANDLE:
+                print("\nPosting to Bluesky...")
+                from social.bluesky import post_status as bluesky_post
+                result = bluesky_post(bluesky_text)
+                print(f"Bluesky: {result.get('uri', 'posted')}")
+            else:
+                print("\nBluesky: skipped (no credentials in .env)")
 
-        if post_twitter and config.TWITTER_CONSUMER_KEY:
-            print("\nPosting to X/Twitter...")
-            from social.twitter import post_status as twitter_post
-            result = twitter_post(twitter_text)
-            tweet_id = result.get('data', {}).get('id', 'posted')
-            print(f"X/Twitter: https://x.com/i/status/{tweet_id}")
+        if post_twitter:
+            if config.TWITTER_CONSUMER_KEY:
+                print("\nPosting to X/Twitter...")
+                from social.twitter import post_status as twitter_post
+                result = twitter_post(twitter_text)
+                tweet_id = result.get('data', {}).get('id', 'posted')
+                print(f"X/Twitter: https://x.com/i/status/{tweet_id}")
+            else:
+                print("\nX/Twitter: skipped (no credentials in .env)")
 
         # Step 5: Update state
         newest_ts = max(m.uploaded_at for m in session_matches)
