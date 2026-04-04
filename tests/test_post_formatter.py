@@ -23,8 +23,8 @@ class TestPostFormatterNoRankChange(unittest.TestCase):
             losses=5,
             win_rate=50.0,
             lp_delta=88,
-            current_lp=16620,
-            lp_to_next_rank=380,
+            current_lp=17515,
+            lp_to_next_rank=285,
             match_count=10,
         )
 
@@ -48,11 +48,11 @@ class TestPostFormatterNoRankChange(unittest.TestCase):
 
     def test_current_lp_with_rank(self):
         post = format_mastodon_post(self.stats)
-        self.assertIn("Current LP: 16,620 (Platinum 4)", post)
+        self.assertIn("Current LP: 17,515 (Platinum 4)", post)
 
     def test_to_next_rank(self):
         post = format_mastodon_post(self.stats)
-        self.assertIn("To next rank: 380 LP remaining", post)
+        self.assertIn("To next rank: 285 LP remaining", post)
 
     def test_hashtags(self):
         post = format_mastodon_post(self.stats)

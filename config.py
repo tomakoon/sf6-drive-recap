@@ -29,44 +29,46 @@ BUCKLER_BASE_URL = "https://www.streetfighter.com/6/buckler"
 # Local state file for session tracking
 STATE_FILE = os.path.join(os.path.dirname(__file__), ".session_state.json")
 
-# SF6 Rank thresholds (LP required for each rank)
-# Ranks below Master use LP; Master+ uses MR
+# SF6 Rank thresholds (LP required to enter each rank)
+# Source: community-documented values (sf6-ranked-guide)
+# Buckler returns Arabic numerals ("Platinum 4"), guide uses Roman ("Platinum IV")
+# We store Arabic format to match Buckler's output.
 RANK_THRESHOLDS = {
     "Rookie 1": 0,
-    "Rookie 2": 1000,
-    "Rookie 3": 2000,
-    "Rookie 4": 3000,
-    "Rookie 5": 4000,
-    "Iron 1": 5000,
-    "Iron 2": 5500,
-    "Iron 3": 6000,
-    "Iron 4": 6500,
-    "Iron 5": 7000,
-    "Bronze 1": 7500,
-    "Bronze 2": 8000,
-    "Bronze 3": 8500,
-    "Bronze 4": 9000,
-    "Bronze 5": 9500,
-    "Silver 1": 10000,
-    "Silver 2": 10500,
-    "Silver 3": 11000,
-    "Silver 4": 11500,
-    "Silver 5": 12000,
-    "Gold 1": 12500,
-    "Gold 2": 13000,
-    "Gold 3": 13500,
-    "Gold 4": 14000,
-    "Gold 5": 14500,
-    "Platinum 1": 15000,
-    "Platinum 2": 15500,
-    "Platinum 3": 16000,
-    "Platinum 4": 16500,
-    "Platinum 5": 17000,
-    "Diamond 1": 17500,
-    "Diamond 2": 18500,
-    "Diamond 3": 19500,
-    "Diamond 4": 20500,
-    "Diamond 5": 21500,
+    "Rookie 2": 200,
+    "Rookie 3": 400,
+    "Rookie 4": 600,
+    "Rookie 5": 800,
+    "Iron 1": 1000,
+    "Iron 2": 1400,
+    "Iron 3": 1800,
+    "Iron 4": 2200,
+    "Iron 5": 2600,
+    "Bronze 1": 3000,
+    "Bronze 2": 3400,
+    "Bronze 3": 3800,
+    "Bronze 4": 4200,
+    "Bronze 5": 4600,
+    "Silver 1": 5000,
+    "Silver 2": 5800,
+    "Silver 3": 6600,
+    "Silver 4": 7400,
+    "Silver 5": 8200,
+    "Gold 1": 9000,
+    "Gold 2": 9800,
+    "Gold 3": 10600,
+    "Gold 4": 11400,
+    "Gold 5": 12200,
+    "Platinum 1": 13000,
+    "Platinum 2": 14200,
+    "Platinum 3": 15400,
+    "Platinum 4": 16600,
+    "Platinum 5": 17800,
+    "Diamond 1": 19000,
+    "Diamond 2": 20200,
+    "Diamond 3": 21400,
+    "Diamond 4": 22600,
+    "Diamond 5": 23800,
     "Master": 25000,
 }
 
@@ -83,4 +85,5 @@ def lp_to_next_rank(current_lp: int, current_rank: str) -> int | None:
     if idx + 1 >= len(ranks):
         return None
     next_threshold = RANK_THRESHOLDS[ranks[idx + 1]]
-    return max(0, next_threshold - current_lp)
+    remaining = next_threshold - current_lp
+    return remaining if remaining > 0 else None
