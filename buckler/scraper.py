@@ -8,9 +8,13 @@ Scraping approach based on cfn-tracker (github.com/williamsjokvist/cfn-tracker):
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from dataclasses import dataclass, field
 from playwright.sync_api import BrowserContext
+
+# When no previous session timestamp exists, only look back this many hours
+DEFAULT_SESSION_WINDOW_HOURS = 6
 
 _DEBUG_DIR = Path(__file__).parent.parent / ".debug"
 BUCKLER_BATTLELOG_URL = "https://www.streetfighter.com/6/buckler/profile/{sid}/battlelog/rank"
@@ -63,6 +67,12 @@ def fetch_battle_log(
     _DEBUG_DIR.mkdir(parents=True, exist_ok=True)
     sid = short_id or cfn_name
     base_url = BUCKLER_BATTLELOG_URL.format(sid=sid)
+
+    # If no last timestamp, use a time-based fallback
+    if not last_timestamp:
+        fallback_ts = str(int(time.time()) - DEFAULT_SESSION_WINDOW_HOURS * 3600)
+        print(f"  [scraper] No previous session — defaulting to last {DEFAULT_SESSION_WINDOW_HOURS} hours")
+        last_timestamp = fallback_ts
 
     page = context.new_page()
     profile = None
