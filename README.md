@@ -44,7 +44,7 @@ All platforms are optional. Configure only the ones you want.
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/sf6-drive-recap.git
+git clone https://github.com/tomakoon/sf6-drive-recap.git
 cd sf6-drive-recap
 python3 -m venv venv
 source venv/bin/activate
