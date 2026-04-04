@@ -4,6 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from buckler.scraper import ProfileData, Match
 
+# A gap of this many seconds between consecutive matches marks a session boundary
+SESSION_GAP_SECONDS = 3 * 3600  # 3 hours
+
 
 @dataclass
 class SessionStats:
@@ -46,6 +49,17 @@ def reconstruct_session(
 
     # Sort by upload time (oldest first)
     matches.sort(key=lambda m: m.uploaded_at)
+
+    # Detect session boundaries using timestamp gaps.
+    # Walk from newest to oldest — the first gap of 3+ hours marks where
+    # the current session starts. Only keep matches after that gap.
+    if len(matches) > 1:
+        for i in range(len(matches) - 1, 0, -1):
+            gap = int(matches[i].uploaded_at) - int(matches[i - 1].uploaded_at)
+            if gap >= SESSION_GAP_SECONDS:
+                print(f"  Session boundary detected: {gap // 3600}h gap between match {i-1} and {i}")
+                matches = matches[i:]
+                break
 
     stats = SessionStats()
     stats.character = profile.character_name
