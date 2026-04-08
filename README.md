@@ -89,23 +89,32 @@ Note: X API uses pay-per-use pricing ($0.01/tweet as of 2026).
 
 ### CLI
 
+On macOS/Linux, use the wrapper script (no need to activate the venv):
+
 ```bash
 # Preview without posting
-python driverecap.py --dry-run
+./driverecap --dry-run
 
 # Post to all configured platforms
-python driverecap.py
+./driverecap
 
 # Post to a single platform
-python driverecap.py --mastodon-only
-python driverecap.py --bluesky-only
-python driverecap.py --twitter-only
+./driverecap --mastodon-only
+./driverecap --bluesky-only
+./driverecap --twitter-only
 
 # Reset session state (include all recent matches)
-python driverecap.py --reset-state
+./driverecap --reset-state
 
 # Debug: run browser in visible mode
-python driverecap.py --dry-run --no-headless
+./driverecap --dry-run --no-headless
+```
+
+On Windows (or if you prefer activating the venv manually):
+
+```bash
+source venv/bin/activate   # or venv\Scripts\activate on Windows
+python driverecap.py --dry-run
 ```
 
 ### macOS Shortcut

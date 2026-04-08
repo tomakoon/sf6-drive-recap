@@ -1,0 +1,4 @@
+#!/bin/bash
+# Convenience wrapper — runs driverecap.py with the project's venv
+DIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$DIR/venv/bin/python3" "$DIR/driverecap.py" "$@"
