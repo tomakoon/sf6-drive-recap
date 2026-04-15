@@ -114,38 +114,67 @@ def main():
         post_bluesky = args.bluesky_only or not any_only
         post_twitter = args.twitter_only or not any_only
 
+        succeeded = []
+        failed = []
+
         if post_mastodon:
             if config.MASTODON_ACCESS_TOKEN:
-                print("\nPosting to Mastodon...")
-                from social.mastodon import post_status as mastodon_post
-                result = mastodon_post(mastodon_text)
-                print(f"Mastodon: {result.get('url', 'posted')}")
+                try:
+                    print("\nPosting to Mastodon...")
+                    from social.mastodon import post_status as mastodon_post
+                    result = mastodon_post(mastodon_text)
+                    print(f"Mastodon: {result.get('url', 'posted')}")
+                    succeeded.append("Mastodon")
+                except Exception as e:
+                    print(f"Mastodon: FAILED ({e})")
+                    failed.append("mastodon")
             else:
                 print("\nMastodon: skipped (no credentials in .env)")
 
         if post_bluesky:
             if config.BLUESKY_HANDLE:
-                print("\nPosting to Bluesky...")
-                from social.bluesky import post_status as bluesky_post
-                result = bluesky_post(bluesky_text)
-                print(f"Bluesky: {result.get('uri', 'posted')}")
+                try:
+                    print("\nPosting to Bluesky...")
+                    from social.bluesky import post_status as bluesky_post
+                    result = bluesky_post(bluesky_text)
+                    print(f"Bluesky: {result.get('uri', 'posted')}")
+                    succeeded.append("Bluesky")
+                except Exception as e:
+                    print(f"Bluesky: FAILED ({e})")
+                    failed.append("bluesky")
             else:
                 print("\nBluesky: skipped (no credentials in .env)")
 
         if post_twitter:
             if config.TWITTER_CONSUMER_KEY:
-                print("\nPosting to X/Twitter...")
-                from social.twitter import post_status as twitter_post
-                result = twitter_post(twitter_text)
-                tweet_id = result.get('data', {}).get('id', 'posted')
-                print(f"X/Twitter: https://x.com/i/status/{tweet_id}")
+                try:
+                    print("\nPosting to X/Twitter...")
+                    from social.twitter import post_status as twitter_post
+                    result = twitter_post(twitter_text)
+                    tweet_id = result.get('data', {}).get('id', 'posted')
+                    print(f"X/Twitter: https://x.com/i/status/{tweet_id}")
+                    succeeded.append("X/Twitter")
+                except Exception as e:
+                    print(f"X/Twitter: FAILED ({e})")
+                    failed.append("twitter")
             else:
                 print("\nX/Twitter: skipped (no credentials in .env)")
 
-        # Step 5: Update state
+        # Step 5: Update state (always save, even if some platforms failed)
         newest_ts = max(m.uploaded_at for m in session_matches)
         save_last_match_timestamp(newest_ts)
-        print("\nSession state saved. Done!")
+
+        # Step 6: Summary
+        print("\n" + "=" * 40)
+        if succeeded:
+            print(f"Posted to: {', '.join(succeeded)}")
+        if failed:
+            print(f"FAILED: {', '.join(f.capitalize() for f in failed)}")
+            retry_flags = " ".join(f"--{f}-only" for f in failed)
+            print(f"\nTo retry, run: ./driverecap --reset-state {retry_flags}")
+        if not failed:
+            print("All platforms posted successfully.")
+        print("Session state saved.")
 
     finally:
         context.close()
